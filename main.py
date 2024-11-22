@@ -25,6 +25,7 @@ class PromptManager(ctk.CTk):
         self.category_var = tk.StringVar(value="通用")
         self.filter_var = tk.StringVar(value="所有Prompt")
         self.search_var = tk.StringVar()
+        self.search_var.trace_add("write", self._on_search_changed)  # 添加搜索变量监听
         
         # 配置窗口样式
         self.configure_window_style()
@@ -74,15 +75,29 @@ class PromptManager(ctk.CTk):
         )
         search_entry.pack(fill=tk.X, expand=True)
         
+        # 添加清除按钮
+        clear_button = ctk.CTkButton(
+            search_frame,
+            text="✕",
+            width=20,
+            height=20,
+            corner_radius=10,
+            fg_color="transparent",
+            hover_color=("gray75", "gray25"),
+            command=self._clear_search
+        )
+        clear_button.pack(side=tk.RIGHT, padx=(5,0))
+        self.clear_button = clear_button
+        
         # 过滤器容器
         filter_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
         filter_frame.pack(fill=tk.X, padx=15, pady=10)
         
-        filters = [
+        filters = (
             ("所有Prompt", "#3498DB"),  # 蓝色
             ("内置Prompt", "#2ECC71"),  # 绿色
             ("自定义Prompt", "#E67E22")  # 橙色
-        ]
+        )
         
         # 使用按钮组替代单选按钮
         for text, color in filters:
@@ -220,13 +235,28 @@ class PromptManager(ctk.CTk):
         )
         self.content_text.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
 
-    def load_prompts(self):
-        """加载提示词列表"""
+    def _on_search_changed(self, *args):
+        """处理搜索文本变化"""
+        search_text = self.search_var.get().strip()
+        if search_text:
+            # 执行搜索
+            prompts = self.db.search_prompts(search_text)
+            self._update_prompt_list(prompts)
+            self.clear_button.configure(fg_color=("gray75", "gray35"))  # 显示清除按钮
+        else:
+            # 恢复显示所有prompt
+            self.load_prompts()
+            self.clear_button.configure(fg_color="transparent")  # 隐藏清除按钮
+
+    def _clear_search(self):
+        """清除搜索"""
+        self.search_var.set("")
+        self.load_prompts()
+
+    def _update_prompt_list(self, prompts):
+        """更新提示词列表显示"""
         self.prompt_list.delete(0, tk.END)
         self.prompt_cache.clear()
-        
-        filter_type = self.filter_var.get()
-        prompts = self.db.get_filtered_prompts(filter_type)
         
         # 确保每行有足够的空间显示图标和标题
         max_title_len = max([len(p.title) for p in prompts]) if prompts else 0
@@ -249,6 +279,12 @@ class PromptManager(ctk.CTk):
         # 更新计数
         count = len(prompts)
         self.count_label.configure(text=f"{count} 个项目")
+
+    def load_prompts(self):
+        """加载提示词列表"""
+        filter_type = self.filter_var.get()
+        prompts = self.db.get_filtered_prompts(filter_type)
+        self._update_prompt_list(prompts)
 
     def on_select_prompt(self, event=None):
         """选择提示词时的处理"""
@@ -425,7 +461,7 @@ class PromptManager(ctk.CTk):
         g = max(0, min(255, g + factor))
         b = max(0, min(255, b + factor))
         
-        # 返回新的十六���制颜色
+        # 返回新的十六进制颜色
         return f"#{r:02x}{g:02x}{b:02x}"
 
 class PromptListFrame(ctk.CTkFrame):
