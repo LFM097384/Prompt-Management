@@ -1,0 +1,45 @@
+
+{
+    "app": {
+        "title": "Prompt Manager"
+    },
+    "search": {
+        "placeholder": "Search prompts..."
+    },
+    "filter": {
+        "所有Prompt": "All Prompts",
+        "内置Prompt": "Built-in",
+        "自定义Prompt": "Custom"
+    },
+    "list": {
+        "title": "📝 Prompt List",
+        "count": "{} items"
+    },
+    "btn": {
+        "new": "New",
+        "save": "Save",
+        "delete": "Delete",
+        "import": "Import",
+        "export": "Export"
+    },
+    "dialog": {
+        "warning": "Warning",
+        "error": "Error",
+        "success": "Success",
+        "confirm": "Confirm",
+        "empty_content": "Title and content cannot be empty!",
+        "save_success": "Save successful!",
+        "save_failed": "Save failed!",
+        "delete_builtin": "Built-in prompts cannot be deleted!",
+        "delete_confirm": "Are you sure you want to delete this prompt?",
+        "delete_success": "Delete successful!",
+        "delete_failed": "Delete failed!",
+        "import_success": "Successfully imported {} prompts!",
+        "import_failed": "Import failed: {}",
+        "export_success": "Export successful!",
+        "export_failed": "Export failed: {}"
+    },
+    "lang": {
+        "switch": "中文"
+    }
+}

@@ -1,0 +1,45 @@
+
+{
+    "app": {
+        "title": "Prompt 管理器"
+    },
+    "search": {
+        "placeholder": "搜索提示词..."
+    },
+    "filter": {
+        "所有Prompt": "所有Prompt",
+        "内置Prompt": "内置Prompt",
+        "自定义Prompt": "自定义Prompt"
+    },
+    "list": {
+        "title": "📝 提示词列表",
+        "count": "{} 个项目"
+    },
+    "btn": {
+        "new": "新建",
+        "save": "保存",
+        "delete": "删除",
+        "import": "导入",
+        "export": "导出"
+    },
+    "dialog": {
+        "warning": "提示",
+        "error": "错误",
+        "success": "成功",
+        "confirm": "确认",
+        "empty_content": "标题和内容不能为空!",
+        "save_success": "保存成功!",
+        "save_failed": "保存失败!",
+        "delete_builtin": "内置Prompt不能删除!",
+        "delete_confirm": "确定要删除这个Prompt吗?",
+        "delete_success": "删除成功!",
+        "delete_failed": "删除失败!",
+        "import_success": "成功导入 {} 个Prompt!",
+        "import_failed": "导入失败: {}",
+        "export_success": "导出成功!",
+        "export_failed": "导出失败: {}"
+    },
+    "lang": {
+        "switch": "English"
+    }
+}

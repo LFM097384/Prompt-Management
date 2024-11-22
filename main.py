@@ -5,10 +5,14 @@ import json
 import uuid
 import os
 from db import Database, Prompt
+from i18n import I18n  # 新增导入
 
 class PromptManager(ctk.CTk):
     def __init__(self):
         super().__init__()
+        
+        # 初始化国际化
+        self.i18n = I18n()
         
         # 初始化数据库
         self.db = Database()
@@ -17,7 +21,7 @@ class PromptManager(ctk.CTk):
         self.prompt_cache = {}
         
         # 配置窗口
-        self.title("Prompt 管理器")
+        self.title(self.i18n.t("app.title"))
         self.geometry("1000x600")
         
         # 创建变量
@@ -35,6 +39,12 @@ class PromptManager(ctk.CTk):
         
         # 加载提示词
         self.load_prompts()
+        
+        # 添加语言切换按钮
+        self._add_language_switcher()
+        
+        # 保存需要更新文本的组件引用
+        self.ui_elements = {}
     
     def create_gui(self):
         # 创建主布局
@@ -66,14 +76,15 @@ class PromptManager(ctk.CTk):
         )
         search_icon.pack(side=tk.LEFT, padx=(0,5))
         
-        search_entry = ctk.CTkEntry(
+        # 搜索框
+        self.search_entry = ctk.CTkEntry(
             search_frame,
             placeholder_text="搜索提示词...",
             textvariable=self.search_var,
             height=35,
             corner_radius=8
         )
-        search_entry.pack(fill=tk.X, expand=True)
+        self.search_entry.pack(fill=tk.X, expand=True)
         
         # 添加清除按钮
         clear_button = ctk.CTkButton(
@@ -99,11 +110,12 @@ class PromptManager(ctk.CTk):
             ("自定义Prompt", "#E67E22")  # 橙色
         )
         
-        # 使用按钮组替代单选按钮
+        # 过滤器按钮组
+        self.filter_buttons = {}  # 改用字典存储按钮
         for text, color in filters:
             btn = ctk.CTkButton(
                 filter_frame,
-                text=text,
+                text=self.i18n.t(f"filter.{text}"),  # 初始化时就使用翻译文本
                 fg_color=color if self.filter_var.get() == text else "transparent",
                 hover_color=self._adjust_color(color, -20),
                 command=lambda t=text: self._on_filter_click(t),
@@ -114,6 +126,7 @@ class PromptManager(ctk.CTk):
                 font=("Microsoft YaHei UI", 11)
             )
             btn.pack(side=tk.LEFT, padx=2, expand=True)
+            self.filter_buttons[text] = btn  # 用原始文本作为键
         
         # 提示词列表标题
         list_header = ctk.CTkFrame(sidebar, fg_color="transparent")
@@ -136,6 +149,9 @@ class PromptManager(ctk.CTk):
         count_label.pack(side=tk.RIGHT)
         self.count_label = count_label  # 保存引用以便更新
         
+        # 保存列表标题引用
+        self.list_label = list_label
+        
         # 提示词列表容器（使用自定义Frame）
         list_container = PromptListFrame(
             sidebar,
@@ -152,12 +168,11 @@ class PromptManager(ctk.CTk):
         self.load_prompts()
         
         # 更新过滤器按钮状态
-        for widget in self.winfo_children():
-            if isinstance(widget, ctk.CTkButton):
-                if widget.cget("text") == filter_type:
-                    widget.configure(fg_color=widget.cget("border_color"))
-                else:
-                    widget.configure(fg_color="transparent")
+        for text, btn in self.filter_buttons.items():
+            if text == filter_type:
+                btn.configure(fg_color=btn.cget("border_color"))
+            else:
+                btn.configure(fg_color="transparent")
 
     def create_main_content(self):
         # 主内容区框架
@@ -211,8 +226,13 @@ class PromptManager(ctk.CTk):
             ("导出", "#34495E", self.export_prompts)    # 深灰蓝色
         ]
         
+        # 保存按钮工具栏引用
+        self.btn_frame = btn_frame
+        
+        # 创建按钮并保存引用
+        self.buttons = {}
         for text, color, command in button_configs:
-            ctk.CTkButton(
+            btn = ctk.CTkButton(
                 btn_frame,
                 text=text,
                 command=command,
@@ -221,7 +241,9 @@ class PromptManager(ctk.CTk):
                 fg_color=color,
                 hover_color=self._adjust_color(color, -20),  # 暗化悬停颜色
                 font=("Microsoft YaHei UI", 11)
-            ).pack(side=tk.LEFT, padx=5)
+            )
+            btn.pack(side=tk.LEFT, padx=5)
+            self.buttons[text] = btn
         
         # 内容编辑区
         content_frame = ctk.CTkFrame(main, fg_color=("gray85", "gray25"))
@@ -463,6 +485,73 @@ class PromptManager(ctk.CTk):
         
         # 返回新的十六进制颜色
         return f"#{r:02x}{g:02x}{b:02x}"
+
+    def _add_language_switcher(self):
+        """添加语言切换按钮"""
+        lang_frame = ctk.CTkFrame(self)
+        lang_frame.grid(row=0, column=1, sticky="ne", padx=15, pady=5)
+        
+        lang_btn = ctk.CTkButton(
+            lang_frame,
+            text=self.i18n.t("lang.switch"),
+            width=80,
+            height=25,
+            command=self._switch_language
+        )
+        lang_btn.pack(padx=5, pady=5)
+    
+    def _switch_language(self):
+        """切换语言"""
+        current_lang = self.i18n.current_lang
+        new_lang = "en" if current_lang == "zh" else "zh"
+        self.i18n.set_language(new_lang)
+        self._update_ui_texts()
+    
+    def _update_ui_texts(self):
+        """更新界面文本"""
+        # 更新窗口标题
+        self.title(self.i18n.t("app.title"))
+        
+        # 更新搜索框占位符
+        if hasattr(self, 'search_entry'):
+            self.search_entry.configure(
+                placeholder_text=self.i18n.t("search.placeholder")
+            )
+        
+        # 更新过滤器按钮
+        if hasattr(self, 'filter_buttons'):
+            for original_text, btn in self.filter_buttons.items():
+                translated_text = self.i18n.t(f"filter.{original_text}")
+                btn.configure(text=translated_text)
+        
+        # 更新列表标题
+        if hasattr(self, 'list_label'):
+            self.list_label.configure(text=self.i18n.t("list.title"))
+        
+        # 更新按钮文本
+        if hasattr(self, 'buttons'):
+            button_texts = {
+                "新建": "btn.new",
+                "保存": "btn.save",
+                "删除": "btn.delete",
+                "导入": "btn.import",
+                "导出": "btn.export"
+            }
+            for original_text, translation_key in button_texts.items():
+                if original_text in self.buttons:
+                    self.buttons[original_text].configure(
+                        text=self.i18n.t(translation_key)
+                    )
+        
+        # 更新计数文本
+        if hasattr(self, 'count_label'):
+            count = len(self.prompt_cache)
+            self.count_label.configure(
+                text=self.i18n.t("list.count").format(count)
+            )
+
+        # 触发重绘
+        self.update()
 
 class PromptListFrame(ctk.CTkFrame):
     def __init__(self, *args, callback=None, **kwargs):
