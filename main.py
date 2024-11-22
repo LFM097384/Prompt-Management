@@ -46,90 +46,218 @@ class PromptManager(ctk.CTk):
     
     def create_sidebar(self):
         # 侧边栏框架
-        sidebar = ctk.CTkFrame(self, width=200)
-        sidebar.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-        
-        # 过滤选项
-        filter_label = ctk.CTkLabel(sidebar, text="过滤")
-        filter_label.pack(pady=5)
-        
-        filters = ["所有Prompt", "内置Prompt", "自定义Prompt"]
-        for f in filters:
-            rb = ctk.CTkRadioButton(
-                sidebar, 
-                text=f,
-                value=f,
-                variable=self.filter_var,
-                command=self.load_prompts
-            )
-            rb.pack(pady=2)
-            
-        # 提示词列表
-        list_label = ctk.CTkLabel(sidebar, text="提示词列表")
-        list_label.pack(pady=5)
-        
-        self.prompt_list = tk.Listbox(
-            sidebar,
-            width=25,
-            height=20,
-            selectmode=tk.SINGLE
+        sidebar = ctk.CTkFrame(
+            self, 
+            width=280,  # 增加宽度
+            fg_color=("gray90", "gray16")  # 更深的背景色
         )
-        self.prompt_list.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        self.prompt_list.bind('<<ListboxSelect>>', self.on_select_prompt)
-    
+        sidebar.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        
+        # 搜索框容器
+        search_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
+        search_frame.pack(fill=tk.X, padx=15, pady=(15,5))
+        
+        # 搜索图标和输入框在一行
+        search_icon = ctk.CTkLabel(
+            search_frame,
+            text="🔍",
+            font=("Segoe UI", 14)
+        )
+        search_icon.pack(side=tk.LEFT, padx=(0,5))
+        
+        search_entry = ctk.CTkEntry(
+            search_frame,
+            placeholder_text="搜索提示词...",
+            textvariable=self.search_var,
+            height=35,
+            corner_radius=8
+        )
+        search_entry.pack(fill=tk.X, expand=True)
+        
+        # 过滤器容器
+        filter_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
+        filter_frame.pack(fill=tk.X, padx=15, pady=10)
+        
+        filters = [
+            ("所有Prompt", "#3498DB"),  # 蓝色
+            ("内置Prompt", "#2ECC71"),  # 绿色
+            ("自定义Prompt", "#E67E22")  # 橙色
+        ]
+        
+        # 使用按钮组替代单选按钮
+        for text, color in filters:
+            btn = ctk.CTkButton(
+                filter_frame,
+                text=text,
+                fg_color=color if self.filter_var.get() == text else "transparent",
+                hover_color=self._adjust_color(color, -20),
+                command=lambda t=text: self._on_filter_click(t),
+                height=32,
+                corner_radius=8,
+                border_width=1,
+                border_color=color,
+                font=("Microsoft YaHei UI", 11)
+            )
+            btn.pack(side=tk.LEFT, padx=2, expand=True)
+        
+        # 提示词列表标题
+        list_header = ctk.CTkFrame(sidebar, fg_color="transparent")
+        list_header.pack(fill=tk.X, padx=15, pady=(20,5))
+        
+        list_label = ctk.CTkLabel(
+            list_header,
+            text="📝 提示词列表",
+            font=("Microsoft YaHei UI", 14, "bold"),
+            anchor="w"
+        )
+        list_label.pack(side=tk.LEFT)
+        
+        count_label = ctk.CTkLabel(
+            list_header,
+            text="0 个项目",
+            font=("Microsoft YaHei UI", 11),
+            text_color="gray60"
+        )
+        count_label.pack(side=tk.RIGHT)
+        self.count_label = count_label  # 保存引用以便更新
+        
+        # 提示词列表容器（使用自定义Frame）
+        list_container = PromptListFrame(
+            sidebar,
+            fg_color=("gray85", "gray20"),
+            corner_radius=10,
+            callback=self.on_select_prompt  # 传入回调函数
+        )
+        list_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+        self.prompt_list = list_container.listbox
+
+    def _on_filter_click(self, filter_type):
+        """处理过滤器按钮点击"""
+        self.filter_var.set(filter_type)
+        self.load_prompts()
+        
+        # 更新过滤器按钮状态
+        for widget in self.winfo_children():
+            if isinstance(widget, ctk.CTkButton):
+                if widget.cget("text") == filter_type:
+                    widget.configure(fg_color=widget.cget("border_color"))
+                else:
+                    widget.configure(fg_color="transparent")
+
     def create_main_content(self):
         # 主内容区框架
-        main = ctk.CTkFrame(self)
-        main.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+        main = ctk.CTkFrame(self, fg_color=("gray90", "gray20"))
+        main.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
         main.grid_columnconfigure(0, weight=1)
         main.grid_rowconfigure(2, weight=1)
         
         # 标题和分类
-        title_frame = ctk.CTkFrame(main)
-        title_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        title_frame = ctk.CTkFrame(main, fg_color="transparent")
+        title_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
         
-        ctk.CTkLabel(title_frame, text="标题:").pack(side=tk.LEFT, padx=5)
-        title_entry = ctk.CTkEntry(title_frame, textvariable=self.title_var)
+        ctk.CTkLabel(
+            title_frame,
+            text="标题:",
+            font=("Microsoft YaHei UI", 12, "bold")
+        ).pack(side=tk.LEFT, padx=5)
+        
+        title_entry = ctk.CTkEntry(
+            title_frame,
+            textvariable=self.title_var,
+            height=32,
+            font=("Microsoft YaHei UI", 11)
+        )
         title_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         
-        ctk.CTkLabel(title_frame, text="分类:").pack(side=tk.LEFT, padx=5)
-        category_entry = ctk.CTkEntry(title_frame, textvariable=self.category_var)
+        ctk.CTkLabel(
+            title_frame,
+            text="分类:",
+            font=("Microsoft YaHei UI", 12, "bold")
+        ).pack(side=tk.LEFT, padx=5)
+        
+        category_entry = ctk.CTkEntry(
+            title_frame,
+            textvariable=self.category_var,
+            width=120,
+            height=32,
+            font=("Microsoft YaHei UI", 11)
+        )
         category_entry.pack(side=tk.LEFT, padx=5)
         
         # 按钮工具栏
-        btn_frame = ctk.CTkFrame(main)
-        btn_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
+        btn_frame = ctk.CTkFrame(main, fg_color="transparent")
+        btn_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(5,10))
         
-        ctk.CTkButton(btn_frame, text="新建", command=self.new_prompt).pack(side=tk.LEFT, padx=5)
-        ctk.CTkButton(btn_frame, text="保存", command=self.save_prompt).pack(side=tk.LEFT, padx=5)
-        ctk.CTkButton(btn_frame, text="删除", command=self.delete_prompt).pack(side=tk.LEFT, padx=5)
-        ctk.CTkButton(btn_frame, text="导入", command=self.import_prompts).pack(side=tk.LEFT, padx=5)
-        ctk.CTkButton(btn_frame, text="导出", command=self.export_prompts).pack(side=tk.LEFT, padx=5)
+        button_configs = [
+            ("新建", "#2ECC71", self.new_prompt),      # 绿色
+            ("保存", "#3498DB", self.save_prompt),      # 蓝色
+            ("删除", "#E74C3C", self.delete_prompt),    # 红色
+            ("导入", "#34495E", self.import_prompts),   # 深灰蓝色
+            ("导出", "#34495E", self.export_prompts)    # 深灰蓝色
+        ]
+        
+        for text, color, command in button_configs:
+            ctk.CTkButton(
+                btn_frame,
+                text=text,
+                command=command,
+                width=100,
+                height=32,
+                fg_color=color,
+                hover_color=self._adjust_color(color, -20),  # 暗化悬停颜色
+                font=("Microsoft YaHei UI", 11)
+            ).pack(side=tk.LEFT, padx=5)
         
         # 内容编辑区
-        self.content_text = ctk.CTkTextbox(main, height=400)
-        self.content_text.grid(row=2, column=0, sticky="nsew", padx=5, pady=5)
+        content_frame = ctk.CTkFrame(main, fg_color=("gray85", "gray25"))
+        content_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=5)
+        
+        self.content_text = ctk.CTkTextbox(
+            content_frame,
+            wrap="word",
+            font=("Microsoft YaHei UI", 11),
+            fg_color="transparent"
+        )
+        self.content_text.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
 
     def load_prompts(self):
         """加载提示词列表"""
         self.prompt_list.delete(0, tk.END)
-        self.prompt_cache.clear()  # 清除缓存
+        self.prompt_cache.clear()
         
         filter_type = self.filter_var.get()
         prompts = self.db.get_filtered_prompts(filter_type)
         
+        # 确保每行有足够的空间显示图标和标题
+        max_title_len = max([len(p.title) for p in prompts]) if prompts else 0
+        format_str = " {:<" + str(max_title_len + 4) + "}"
+        
         for i, p in enumerate(prompts):
-            self.prompt_list.insert(tk.END, p.title)
-            self.prompt_cache[i] = p  # 使用索引存储prompt对象
-    
-    def on_select_prompt(self, event):
+            # 添加项目，包括图标和固定宽度的格式
+            icon = "📌" if p.is_builtin else "📝"
+            display_text = format_str.format(f"{icon} {p.title}")
+            self.prompt_list.insert(tk.END, display_text)
+            self.prompt_cache[i] = p
+            
+            # 设置内置项目的特殊样式
+            if p.is_builtin:
+                self.prompt_list.itemconfig(
+                    i,
+                    fg="#4CAF50" if ctk.get_appearance_mode()=="light" else "#81C784"
+                )
+        
+        # 更新计数
+        count = len(prompts)
+        self.count_label.configure(text=f"{count} 个项目")
+
+    def on_select_prompt(self, event=None):
         """选择提示词时的处理"""
         selection = self.prompt_list.curselection()
         if not selection:
             return
             
         index = selection[0]
-        prompt = self.prompt_cache.get(index)  # 从缓存中获取prompt
+        prompt = self.prompt_cache.get(index)
         
         if prompt:
             self.title_var.set(prompt.title)
@@ -284,6 +412,94 @@ class PromptManager(ctk.CTk):
                 self.option_add(style, settings["font"])
             except Exception:
                 pass
+
+    def _adjust_color(self, hex_color: str, factor: int) -> str:
+        """调整颜色深浅"""
+        # 解析十六进制颜色
+        r = int(hex_color[1:3], 16)
+        g = int(hex_color[3:5], 16)
+        b = int(hex_color[5:7], 16)
+        
+        # 调整颜色值
+        r = max(0, min(255, r + factor))
+        g = max(0, min(255, g + factor))
+        b = max(0, min(255, b + factor))
+        
+        # 返回新的十六���制颜色
+        return f"#{r:02x}{g:02x}{b:02x}"
+
+class PromptListFrame(ctk.CTkFrame):
+    def __init__(self, *args, callback=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        self.callback = callback
+        
+        # 创建滚动条
+        scrollbar = tk.Scrollbar(self)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self.listbox = tk.Listbox(
+            self,
+            selectmode=tk.SINGLE,
+            activestyle='none',
+            background=("#F0F0F0" if ctk.get_appearance_mode()=="light" else "#2A2A2A"),
+            foreground=("black" if ctk.get_appearance_mode()=="light" else "white"),
+            selectbackground=("#3498DB" if ctk.get_appearance_mode()=="light" else "#2980B9"),
+            selectforeground="white",
+            highlightthickness=0,
+            bd=0,
+            font=("Microsoft YaHei UI", 11),
+            relief=tk.FLAT,
+            cursor="hand2",
+            yscrollcommand=scrollbar.set
+        )
+        self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2, pady=2)
+        
+        # 配置滚动条
+        scrollbar.config(command=self.listbox.yview)
+        
+        # 绑定事件
+        self.listbox.bind('<<ListboxSelect>>', self._on_select)
+        self.listbox.bind('<Motion>', self._on_motion)
+        self.listbox.bind('<Leave>', self._on_leave)
+        
+        # 保存状态
+        self._hover_item = None
+        
+    def _on_select(self, event):
+        """处理选择事件"""
+        if self.callback:
+            self.callback(event)
+    
+    def _on_motion(self, event):
+        """鼠标悬停效果"""
+        index = self.listbox.nearest(event.y)
+        if index != self._hover_item:
+            # 恢复之前的悬停项
+            if self._hover_item is not None:
+                self._restore_item_color(self._hover_item)
+            
+            # 设置新的悬停项
+            if not self.listbox.selection_includes(index):
+                self.listbox.itemconfig(
+                    index,
+                    bg="#404040" if ctk.get_appearance_mode()=="dark" else "#E0E0E0"
+                )
+            self._hover_item = index
+    
+    def _on_leave(self, event):
+        """鼠标离开效果"""
+        if self._hover_item is not None:
+            self._restore_item_color(self._hover_item)
+            self._hover_item = None
+    
+    def _restore_item_color(self, index):
+        """恢复项目原始颜色"""
+        if not self.listbox.selection_includes(index):
+            self.listbox.itemconfig(
+                index,
+                bg=self.listbox.cget("background")
+            )
 
 if __name__ == "__main__":
     app = PromptManager()

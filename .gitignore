@@ -1,0 +1,15 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# System
+.DS_Store
